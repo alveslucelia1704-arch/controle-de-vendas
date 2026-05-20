@@ -1,10 +1,9 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Milho & Espetinho - Firebase + Transferências</title>
-  <!-- Firebase SDKs -->
+  <title>Milho & Espetinho - Cloud Firebase</title>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -12,49 +11,48 @@
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
     body { background: #d0e8d0; height: 100vh; overflow: hidden; }
     .app { display: flex; height: 100vh; }
-    .sidebar { width: 280px; background: #1b4d1b; color: white; display: flex; flex-direction: column; transition: width 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.2); z-index: 10; }
+    .sidebar {
+      width: 280px; background: #1b4d1b; color: white; display: flex; flex-direction: column;
+      transition: width 0.3s; box-shadow: 2px 0 10px rgba(0,0,0,0.2); z-index: 10;
+    }
     .sidebar.collapsed { width: 70px; }
     .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2e7d32; }
+    .sidebar-header h2 { font-size: 1.2rem; white-space: nowrap; }
     .toggle-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
     .menu { flex: 1; margin-top: 20px; }
     .menu-item { padding: 15px 20px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s; color: #e0f2e0; font-size: 1rem; }
     .menu-item:hover { background: #2e7d32; }
     .menu-item.active { background: #2e7d32; border-left: 4px solid #ffc107; }
     .menu-item span:first-child { font-size: 1.3rem; width: 28px; }
+    .menu-item .label { white-space: nowrap; }
     .sidebar.collapsed .label { display: none; }
     .sidebar.collapsed .menu-item { justify-content: center; }
     .sidebar-footer { padding: 20px; font-size: 0.7rem; text-align: center; border-top: 1px solid #2e7d32; }
     .main-content { flex: 1; overflow-y: auto; padding: 24px; background: #e8f5e9; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .card { background: white; border-radius: 24px; padding: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #2e7d32; }
     .card h3 { font-size: 0.8rem; color: #1b5e20; margin-bottom: 8px; }
     .card .valor { font-size: 1.6rem; font-weight: bold; }
-    .negative { color: #c62828 !important; }
-    .positive { color: #2e7d32 !important; }
-    .progress-bar { margin-top: 10px; background: #e0e0e0; border-radius: 20px; height: 10px; overflow: hidden; }
-    .progress-fill { height: 100%; width: 0%; transition: width 0.3s; }
-    .termometro { background: white; border-radius: 20px; padding: 15px; margin-top: 15px; }
-    .termometro-bar { height: 30px; border-radius: 30px; background: linear-gradient(90deg, #c62828, #ffc107, #2e7d32); margin: 10px 0; }
-    .termometro-fill { height: 100%; width: 0%; background: rgba(255,255,255,0.7); border-radius: 30px; transition: width 0.3s; }
+    .progress-bar { margin-top: 10px; background: #e0e0e0; border-radius: 20px; height: 8px; }
+    .progress-fill { background: #4caf50; height: 100%; width: 0%; border-radius: 20px; }
     .form-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; align-items: flex-end; }
     .form-group { flex: 1; min-width: 140px; }
     label { font-size: 0.7rem; font-weight: bold; color: #2e5c2e; display: block; margin-bottom: 5px; }
     input, select, button { width: 100%; padding: 10px 12px; border-radius: 20px; border: 1px solid #c8e6c9; background: white; }
     button { background: #2e7d32; color: white; font-weight: bold; border: none; cursor: pointer; }
     button:hover { background: #1b5e20; }
-    button.secondary { background: #ff8f00; }
-    button.secondary:hover { background: #e65100; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; border-radius: 20px; overflow: hidden; }
     th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #d0e8d0; }
     th { background: #e8f5e9; color: #1b5e20; }
     .insumo-box { background: #fff8e1; border-left: 4px solid #ff8f00; padding: 15px; border-radius: 20px; margin: 15px 0; }
     .page { display: none; }
     .page.active { display: block; }
-    .status-bar { background: #e8f5e9; padding: 8px 16px; border-radius: 40px; margin-bottom: 20px; font-size: 0.8rem; color: #1b5e20; display: inline-block; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: white; border-radius: 28px; padding: 24px; max-width: 400px; width: 90%; }
-    .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-    .close-modal { cursor: pointer; font-size: 1.5rem; }
+    .transfer-box, .recebimento-box { background: #e3f2fd; border-left: 4px solid #1976d2; padding: 15px; border-radius: 20px; margin: 15px 0; }
+    .lista-pequena { max-height: 200px; overflow-y: auto; font-size: 0.85rem; }
+    .chip { display: inline-block; background: #e8e8e8; padding: 4px 10px; border-radius: 20px; margin: 4px; font-size: 0.75rem; }
+    .pendente-item { background: #fff3e0; border-left: 4px solid #ff9800; padding: 8px 12px; border-radius: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .pendente-valor { font-weight: bold; color: #e65100; }
+    .btn-receber { background: #4caf50; padding: 4px 12px; font-size: 0.7rem; width: auto; margin-left: 10px; }
   </style>
 </head>
 <body>
@@ -73,448 +71,480 @@
   </div>
 
   <div class="main-content">
-    <div id="statusMsg" class="status-bar">🔄 Conectando ao Firebase...</div>
-
-    <!-- DASHBOARD -->
     <div id="dashboard-page" class="page active">
       <h1>📊 Dashboard - Visão Geral</h1>
       <div class="dashboard-grid">
         <div class="card"><h3>💵 CAIXA ESPÉCIE</h3><div class="valor" id="saldoEspecie">R$ 0,00</div></div>
         <div class="card"><h3>📱 CAIXA PIX</h3><div class="valor" id="saldoPix">R$ 0,00</div></div>
-        <div class="card"><h3>📝 CONTAS A RECEBER</h3><div class="valor" id="totalReceber">R$ 0,00</div></div>
-        <div class="card"><h3>💰 FUNDO TOTAL</h3><div class="valor" id="fundoTotal">R$ 0,00</div></div>
+        <div class="card"><h3>💰 TOTAL EM CAIXA (Espécie + Pix)</h3><div class="valor" id="totalCaixa">R$ 0,00</div></div>
+        <div class="card"><h3>📝 CONTAS A RECEBER (Fiado)</h3><div class="valor" id="totalReceber">R$ 0,00</div></div>
         <div class="card"><h3>💵 TOTAL INVESTIDO</h3><div class="valor" id="totalAportes">R$ 0,00</div></div>
-        <div class="card"><h3>🏭 EQUIP: PAGO</h3><div class="valor" id="totalEquipPago">R$ 0,00</div></div>
-        <div class="card"><h3>⚠️ EQUIP: A PAGAR</h3><div class="valor" id="totalEquipDevendo">R$ 0,00</div></div>
-        <div class="card"><h3>📈 RESULTADO OPERAC.</h3><div class="valor" id="resultadoOp">R$ 0,00</div></div>
+        <div class="card"><h3>🏭 EQUIPAMENTOS: PAGO</h3><div class="valor" id="totalEquipPago">R$ 0,00</div></div>
+        <div class="card"><h3>⚠️ EQUIPAMENTOS: A PAGAR</h3><div class="valor" id="totalEquipDevendo">R$ 0,00</div></div>
+        <div class="card"><h3>📈 RESULTADO OPERACIONAL</h3><div class="valor" id="resultadoOp">R$ 0,00</div></div>
       </div>
-      <!-- Termômetro do Payback -->
-      <div class="card termometro">
-        <h3>🎯 PAYBACK - Recuperação do Investimento</h3>
-        <div class="termometro-bar">
-          <div class="termometro-fill" id="termometroFill"></div>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-          <span>😰 Prejuízo</span><span>😐 Equilibrando</span><span>😊 Lucro</span>
-        </div>
-        <div id="paybackDetalhe" style="margin-top: 15px; font-weight: bold;"></div>
-        <div class="progress-bar" style="margin-top: 15px;"><div class="progress-fill" id="paybackFill"></div></div>
+      <div class="card">
+        <h3>🎯 PAYBACK (recuperar investimento)</h3>
+        <div class="valor" id="paybackPercent">0%</div>
+        <div class="progress-bar"><div class="progress-fill" id="paybackFill"></div></div>
         <div id="paybackMsg"></div>
       </div>
-      <div class="card"><h3>📉 Lucro Diário</h3><canvas id="lucroChart" style="max-height:250px"></canvas></div>
+      <div class="card" style="margin-top:20px">
+        <h3>📈 Gráfico de Lucro Diário</h3>
+        <canvas id="lucroChart" width="400" height="200" style="max-height:250px"></canvas>
+      </div>
     </div>
 
-    <!-- LANÇAMENTOS -->
     <div id="lancamentos-page" class="page">
       <h1>📆 Lançamentos</h1>
-      <div class="card">
-        <h3>💸 Transferência entre caixas</h3>
+      
+      <!-- APORTES -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>💰 APORTES (dinheiro do seu bolso)</h3>
         <div class="form-row">
-          <div class="form-group"><label>De</label><select id="transfDe"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
-          <div class="form-group"><label>Para</label><select id="transfPara"><option value="pix">Pix</option><option value="especie">Espécie</option></select></div>
-          <div class="form-group"><label>Valor (R$)</label><input type="number" id="transfValor" step="0.01"></div>
-          <div class="form-group"><label>Data</label><input type="date" id="transfData"></div>
-          <div class="form-group"><button id="btnTransferir" class="secondary">🔄 Transferir</button></div>
+          <div class="form-group"><label>Data</label><input type="date" id="aporteData"></div>
+          <div class="form-group"><label>Valor (R$)</label><input type="number" id="aporteValor" step="0.01"></div>
+          <div class="form-group"><label>Destino</label><select id="aporteDestino"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
+          <div class="form-group"><label>Descrição</label><input type="text" id="aporteDesc" placeholder="Ex: Aporte inicial"></div>
+          <div class="form-group"><button id="btnAddAporte">➕ Registrar</button></div>
         </div>
-      </div>
-      <!-- Aportes -->
-      <div class="card"><h3>💰 APORTES</h3>
-        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="aporteData"></div>
-        <div class="form-group"><label>Valor (R$)</label><input type="number" id="aporteValor" step="0.01"></div>
-        <div class="form-group"><label>Destino</label><select id="aporteDestino"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
-        <div class="form-group"><label>Descrição</label><input type="text" id="aporteDesc"></div>
-        <div class="form-group"><button id="btnAddAporte">➕ Registrar</button></div></div>
         <div id="listaAportes"></div>
       </div>
-      <!-- Equipamentos -->
-      <div class="card"><h3>🏭 EQUIPAMENTOS / PARCELAS</h3>
-        <div class="form-row"><div class="form-group"><label>Descrição</label><input type="text" id="equipDesc"></div>
-        <div class="form-group"><label>Valor total</label><input type="number" id="equipTotal" step="0.01"></div>
-        <div class="form-group"><label>Já pago</label><input type="number" id="equipPago" step="0.01" value="0"></div>
-        <div class="form-group"><label>Forma</label><select id="equipPagamento"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
-        <div class="form-group"><button id="btnAddEquip">➕ Adicionar</button></div></div>
+
+      <!-- EQUIPAMENTOS -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>🏭 EQUIPAMENTOS / PARCELAS</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Descrição</label><input type="text" id="equipDesc" placeholder="Ex: Geladeira"></div>
+          <div class="form-group"><label>Valor total (R$)</label><input type="number" id="equipTotal" step="0.01"></div>
+          <div class="form-group"><label>Valor já pago (R$)</label><input type="number" id="equipPago" step="0.01" value="0"></div>
+          <div class="form-group"><label>Forma de pagamento</label><select id="equipPagamento"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
+          <div class="form-group"><button id="btnAddEquip">➕ Adicionar</button></div>
+        </div>
         <div id="listaEquipamentos"></div>
       </div>
-      <!-- Custos Fixos -->
-      <div class="card"><h3>🏠 CUSTOS FIXOS (aluguel, etc)</h3>
-        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="custoFixoData"></div>
-        <div class="form-group"><label>Descrição</label><input type="text" id="custoFixoDesc"></div>
-        <div class="form-group"><label>Valor</label><input type="number" id="custoFixoValor" step="0.01"></div>
-        <div class="form-group"><label>Pago com</label><select id="custoFixoOrigem"><option value="aporte">Aporte</option><option value="caixa">Caixa</option></select></div>
-        <div class="form-group"><button id="btnAddCustoFixo">➕ Adicionar</button></div></div>
+
+      <!-- CUSTOS FIXOS -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>🏠 CUSTOS FIXOS (aluguel, água, luz, etc)</h3>
+        <p style="font-size:0.8rem">Estes custos <strong>NÃO</strong> saem do caixa das vendas, saem do seu aporte ou do caixa.</p>
+        <div class="form-row">
+          <div class="form-group"><label>Data</label><input type="date" id="custoFixoData"></div>
+          <div class="form-group"><label>Descrição</label><input type="text" id="custoFixoDesc" placeholder="Ex: Aluguel"></div>
+          <div class="form-group"><label>Valor (R$)</label><input type="number" id="custoFixoValor" step="0.01"></div>
+          <div class="form-group"><label>Pago com</label><select id="custoFixoOrigem">
+            <option value="aporte">Aporte (do seu bolso)</option>
+            <option value="caixa">Caixa do negócio</option>
+          </select></div>
+          <div class="form-group"><label>Meio de pagamento (se for do caixa)</label><select id="custoFixoPagamento">
+            <option value="especie">Espécie</option>
+            <option value="pix">Pix</option>
+          </select></div>
+          <div class="form-group"><button id="btnAddCustoFixo">➕ Adicionar</button></div>
+        </div>
         <div id="listaCustosFixos"></div>
       </div>
-      <!-- Balanço diário -->
-      <div class="card"><h3>📆 BALANÇO DIÁRIO</h3>
-        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="balancoData"></div></div>
-        <div style="background:#e3f2fd; border-radius:16px; padding:15px;"><h4>💰 FATURAMENTO</h4>
-          <div class="form-row"><div class="form-group"><label>Espécie</label><input type="number" id="vendaEspecie" step="0.01" value="0"></div>
-          <div class="form-group"><label>Pix</label><input type="number" id="vendaPix" step="0.01" value="0"></div>
-          <div class="form-group"><label>Fiado</label><input type="number" id="vendaFiado" step="0.01" value="0"></div></div>
+
+      <!-- TRANSFERÊNCIAS ENTRE CAIXAS -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>🔄 TRANSFERÊNCIA ENTRE CAIXAS</h3>
+        <div class="transfer-box">
+          <div class="form-row">
+            <div class="form-group"><label>Data</label><input type="date" id="transferData"></div>
+            <div class="form-group"><label>De</label><select id="transferDe"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
+            <div class="form-group"><label>Para</label><select id="transferPara"><option value="pix">Pix</option><option value="especie">Espécie</option></select></div>
+            <div class="form-group"><label>Valor (R$)</label><input type="number" id="transferValor" step="0.01"></div>
+            <div class="form-group"><label>Observação</label><input type="text" id="transferObs" placeholder="Ex: Troco"></div>
+            <div class="form-group"><button id="btnTransferir">➡️ Transferir</button></div>
+          </div>
         </div>
-        <div class="insumo-box"><h4>🥩 INSUMOS</h4>
-          <div class="form-row"><div class="form-group"><label>Valor</label><input type="number" id="insumoValor" step="0.01" value="0"></div>
-          <div class="form-group"><label>Pagamento</label><select id="insumoPagamento"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
-          <div class="form-group"><label>Descrição</label><input type="text" id="insumoDesc"></div></div>
+        <div id="listaTransferencias" class="lista-pequena"></div>
+      </div>
+
+      <!-- CONTAS A RECEBER PENDENTES (CORRIGIDO) -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>📋 FIADOS PENDENTES (clique em "Receber" para dar baixa)</h3>
+        <div id="listaPendentes"></div>
+      </div>
+
+      <!-- RECEBIMENTO DE FIADO (manual) -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>💳 RECEBER FIADO (lançamento avulso)</h3>
+        <div class="recebimento-box">
+          <div class="form-row">
+            <div class="form-group"><label>Data</label><input type="date" id="recebimentoData"></div>
+            <div class="form-group"><label>Valor recebido (R$)</label><input type="number" id="recebimentoValor" step="0.01"></div>
+            <div class="form-group"><label>Destino do dinheiro</label><select id="recebimentoDestino"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
+            <div class="form-group"><label>Cliente / Descrição</label><input type="text" id="recebimentoDesc" placeholder="Ex: João pagou"></div>
+            <div class="form-group"><button id="btnReceberFiado">✅ Registrar</button></div>
+          </div>
+        </div>
+        <div id="listaRecebimentos" class="lista-pequena"></div>
+      </div>
+
+      <!-- BALANÇO DIÁRIO -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>📆 BALANÇO DIÁRIO (Vendas e Insumos)</h3>
+        <div class="form-row"><div class="form-group"><label>Data</label><input type="date" id="balancoData"></div></div>
+        <div style="background:#e3f2fd; border-radius:16px; padding:15px; margin:10px 0">
+          <h4>💰 FATURAMENTO DO DIA</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Espécie (R$)</label><input type="number" id="vendaEspecie" step="0.01" value="0"></div>
+            <div class="form-group"><label>Pix (R$)</label><input type="number" id="vendaPix" step="0.01" value="0"></div>
+            <div class="form-group"><label>Fiado (R$)</label><input type="number" id="vendaFiado" step="0.01" value="0"></div>
+          </div>
+        </div>
+        <div class="insumo-box">
+          <h4>🥩 GASTOS COM INSUMOS (milho, carvão, carne)</h4>
+          <div class="form-row">
+            <div class="form-group"><label>Valor total (R$)</label><input type="number" id="insumoValor" step="0.01" value="0"></div>
+            <div class="form-group"><label>Pagamento</label><select id="insumoPagamento"><option value="especie">Espécie</option><option value="pix">Pix</option></select></div>
+            <div class="form-group"><label>Descrição</label><input type="text" id="insumoDesc" placeholder="Ex: carvão, carne"></div>
+          </div>
         </div>
         <button id="btnFinalizarDia" style="background:#43a047">✅ FINALIZAR DIA</button>
       </div>
     </div>
 
-    <!-- EXTRATO -->
     <div id="extrato-page" class="page">
       <h1>📋 Extrato e Resumo</h1>
       <div class="card">
-        <div class="form-row"><div class="form-group"><label>Data inicial</label><input type="date" id="filtroInicio"></div>
-        <div class="form-group"><label>Data final</label><input type="date" id="filtroFim"></div>
-        <div class="form-group"><button id="btnFiltrar">🔍 Filtrar</button></div>
-        <div class="form-group"><button id="btnLimparFiltro">🗑️ Limpar</button></div></div>
-        <div style="overflow-x:auto"><table id="tabelaExtrato"><thead><tr><th>Data</th><th>Faturamento</th><th>Insumos</th><th>Lucro Bruto</th><th>Custos Fixos (caixa)</th><th>Lucro Líquido</th><th>Ações</th></tr></thead><tbody id="corpoExtrato"></tbody></div>
-        <div style="margin-top:20px; text-align:right"><strong>Total Lucro período: <span id="lucroPeriodo">R$ 0,00</span></strong></div>
-        <button id="btnReset" style="background:#a5d6a7; color:#1c441c; margin-top:20px">🔄 Resetar tudo (apagar nuvem)</button>
+        <div class="form-row">
+          <div class="form-group"><label>Data inicial</label><input type="date" id="filtroInicio"></div>
+          <div class="form-group"><label>Data final</label><input type="date" id="filtroFim"></div>
+          <div class="form-group"><button id="btnFiltrar">🔍 Filtrar</button></div>
+          <div class="form-group"><button id="btnLimparFiltro">🗑️ Limpar</button></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="tabelaExtrato">
+            <thead><tr><th>Data</th><th>Faturamento</th><th>Insumos</th><th>Lucro Bruto</th><th>Custos Fixos (do caixa)</th><th>Lucro Líquido Dia</th><th>Ações</th></tr></thead>
+            <tbody id="corpoExtrato"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:20px; text-align:right"><strong>Total Lucro no período: <span id="lucroPeriodo">R$ 0,00</span></strong></div>
+        <button id="btnReset" style="background:#a5d6a7; color:#1c441c; margin-top:20px">🔄 Resetar todos os dados</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Modal de confirmação simples (usaremos alert mesmo) -->
-
 <script>
-  // ==================== CONFIG FIREBASE ====================
   const firebaseConfig = {
     apiKey: "AIzaSyC0sfOc-_oRgT6QdXhCcFdANWUhTMyUP4w",
     authDomain: "controle-de-vendas-e819f.firebaseapp.com",
     projectId: "controle-de-vendas-e819f",
     storageBucket: "controle-de-vendas-e819f.firebasestorage.app",
     messagingSenderId: "1057991353567",
-    appId: "1:1057991353567:web:5466718c454caa3972f56a",
-    measurementId: "G-2D1YJ4P28F"
+    appId: "1:1057991353567:web:5466718c454caa3972f56a"
   };
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Coleções
-  const aportesCol = db.collection("aportes");
-  const equipamentosCol = db.collection("equipamentos");
-  const custosFixosCol = db.collection("custosFixos");
-  const balancosCol = db.collection("balancos");
-  const transferenciasCol = db.collection("transferencias");
+  const aportesRef = db.collection("aportes");
+  const equipamentosRef = db.collection("equipamentos");
+  const custosFixosRef = db.collection("custosFixos");
+  const balancosRef = db.collection("balancos");
+  const transferenciasRef = db.collection("transferencias");
+  const recebimentosRef = db.collection("recebimentos");
 
-  // Dados locais
-  let aportes = [], equipamentos = [], custosFixos = [], balancos = [], transferencias = [];
-  let saldoEspecie = 0, saldoPix = 0;
+  let aportes = [], equipamentos = [], custosFixos = [], balancos = [], transferencias = [], recebimentos = [];
+  let saldoEspecie = 0, saldoPix = 0, totalReceberLiquido = 0;
   let lucroChart = null;
 
-  // ==================== FUNÇÕES AUXILIARES ====================
-  function formatarData(dataStr) {
-    if (!dataStr) return "";
-    const partes = dataStr.split("-");
-    if (partes.length !== 3) return dataStr;
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
-  }
-
-  function aplicarCorNegativa(elemento, valor) {
-    if (valor < 0) {
-      elemento.classList.add("negative");
-      elemento.classList.remove("positive");
-    } else {
-      elemento.classList.add("positive");
-      elemento.classList.remove("negative");
-    }
-  }
-
-  // ==================== LEITURA E ESCRITA FIREBASE ====================
   async function carregarDados() {
-    try {
-      const [aportesSnap, equipSnap, custosSnap, balancosSnap, transfSnap] = await Promise.all([
-        aportesCol.get(), equipamentosCol.get(), custosFixosCol.get(), balancosCol.get(), transferenciasCol.get()
-      ]);
-      aportes = aportesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      equipamentos = equipSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      custosFixos = custosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      balancos = balancosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      transferencias = transfSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      document.getElementById("statusMsg").innerHTML = "✅ Dados carregados da nuvem";
-      setTimeout(() => document.getElementById("statusMsg").style.opacity = "0.5", 2000);
-      recalcularSaldos();
-      atualizarTudo();
-    } catch (err) {
-      console.error(err);
-      document.getElementById("statusMsg").innerHTML = "❌ Erro ao carregar dados";
-    }
-  }
-
-  async function adicionarDocumento(colecao, dados) {
-    const docRef = await colecao.add(dados);
-    return { id: docRef.id, ...dados };
-  }
-
-  async function removerDocumento(colecao, id) {
-    await colecao.doc(id).delete();
-  }
-
-  async function resetarTodosDocumentos() {
-    if (!confirm("⚠️ Isso apagará TODOS os dados da nuvem. Irreversível. Continuar?")) return;
-    const colecoes = [aportesCol, equipamentosCol, custosFixosCol, balancosCol, transferenciasCol];
-    for (let col of colecoes) {
-      const snap = await col.get();
-      const batch = db.batch();
-      snap.docs.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-    }
-    aportes = []; equipamentos = []; custosFixos = []; balancos = []; transferencias = [];
-    saldoEspecie = 0; saldoPix = 0;
+    const aportesSnap = await aportesRef.orderBy("data", "asc").get();
+    aportes = aportesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const equipSnap = await equipamentosRef.get();
+    equipamentos = equipSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const cfSnap = await custosFixosRef.orderBy("data", "asc").get();
+    custosFixos = cfSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const balSnap = await balancosRef.orderBy("data", "asc").get();
+    balancos = balSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const transferSnap = await transferenciasRef.orderBy("data", "asc").get();
+    transferencias = transferSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const recebSnap = await recebimentosRef.orderBy("data", "asc").get();
+    recebimentos = recebSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     recalcularSaldos();
     atualizarTudo();
-    alert("Todos os dados foram apagados.");
   }
 
-  // ==================== LÓGICA DE SALDOS ====================
   function recalcularSaldos() {
     let novaEspecie = 0, novoPix = 0;
-    aportes.forEach(a => {
-      if (a.destino === "especie") novaEspecie += a.valor;
-      else novoPix += a.valor;
-    });
+    aportes.forEach(a => { if(a.destino === "especie") novaEspecie += a.valor; else novoPix += a.valor; });
     balancos.forEach(b => {
-      novaEspecie += b.fatEspecie;
-      novoPix += b.fatPix;
-      if (b.insumoPagamento === "especie") novaEspecie -= b.insumoValor;
+      novaEspecie += (b.fatEspecie || 0);
+      novoPix += (b.fatPix || 0);
+      if(b.insumoPagamento === "especie") novaEspecie -= b.insumoValor;
       else novoPix -= b.insumoValor;
     });
-    custosFixos.forEach(c => {
-      if (c.origem === "caixa") {
-        if (c.pagamento === "especie") novaEspecie -= c.valor;
-        else novoPix -= c.valor;
+    custosFixos.forEach(cf => {
+      if(cf.origem === "caixa") {
+        if(cf.pagamento === "pix") novoPix -= cf.valor;
+        else novaEspecie -= cf.valor;
       }
     });
     transferencias.forEach(t => {
-      if (t.de === "especie" && t.para === "pix") {
-        novaEspecie -= t.valor;
-        novoPix += t.valor;
-      } else if (t.de === "pix" && t.para === "especie") {
-        novoPix -= t.valor;
-        novaEspecie += t.valor;
-      }
+      if(t.de === "especie") novaEspecie -= t.valor;
+      else novoPix -= t.valor;
+      if(t.para === "especie") novaEspecie += t.valor;
+      else novoPix += t.valor;
+    });
+    recebimentos.forEach(r => {
+      if(r.destino === "especie") novaEspecie += r.valor;
+      else novoPix += r.valor;
     });
     saldoEspecie = novaEspecie;
     saldoPix = novoPix;
+
+    // Cálculo correto do total a receber: soma dos fiados - soma dos recebimentos (usando refData)
+    const totalFiadoBruto = balancos.reduce((s,b)=>s+(b.fatFiado||0),0);
+    const totalRecebido = recebimentos.reduce((s,r)=>s+r.valor,0);
+    totalReceberLiquido = Math.max(0, totalFiadoBruto - totalRecebido);
   }
 
   function getTotais() {
-    let totalAportes = aportes.reduce((s, a) => s + a.valor, 0);
-    let totalEquipPago = equipamentos.reduce((s, e) => s + e.pago, 0);
-    let totalEquipDevendo = equipamentos.reduce((s, e) => s + e.restante, 0);
-    let totalReceber = balancos.reduce((s, b) => s + b.fatFiado, 0);
-    let totalVendas = balancos.reduce((s, b) => s + b.fatTotal, 0);
-    let totalInsumos = balancos.reduce((s, b) => s + b.insumoValor, 0);
-    let totalCustosFixosCaixa = custosFixos.filter(c => c.origem === "caixa").reduce((s, c) => s + c.valor, 0);
-    let resultadoOp = totalVendas - totalInsumos - totalCustosFixosCaixa;
-    let fundoTotal = saldoEspecie + saldoPix + totalReceber;
+    let totalAportes = aportes.reduce((s,a)=>s+a.valor,0);
+    let totalEquipPago = equipamentos.reduce((s,e)=>s+(e.pago||0),0);
+    let totalEquipDevendo = equipamentos.reduce((s,e)=>s+(e.restante||0),0);
+    let totalVendas = balancos.reduce((s,b)=>s+(b.fatTotal||0),0);
+    let totalInsumos = balancos.reduce((s,b)=>s+(b.insumoValor||0),0);
+    let totalCustosFixosDoCaixa = custosFixos.filter(c=>c.origem==="caixa").reduce((s,c)=>s+c.valor,0);
+    let resultadoOp = totalVendas - totalInsumos - totalCustosFixosDoCaixa;
+    let totalCaixa = saldoEspecie + saldoPix;
     let paybackPercent = totalAportes > 0 ? (resultadoOp / totalAportes) * 100 : 0;
-    if (paybackPercent > 100) paybackPercent = 100;
-    if (paybackPercent < 0) paybackPercent = 0;
-    // Para o termômetro: queremos mostrar evolução de -100% (prejuízo total) a +100% (lucro total)
-    // Mas como paybackPercent já é 0 a 100, farei um indicador de déficit -> superávit.
-    // Vamos criar "termometroPercent" que varia de 0 a 100 onde 0 = muito negativo (resultadoOp <= -totalAportes) e 100 = lucro >= totalAportes.
-    let faixaResultado = resultadoOp;
-    let limiteInferior = -totalAportes;
-    let limiteSuperior = totalAportes;
-    let termometroPercent = 0;
-    if (faixaResultado <= limiteInferior) termometroPercent = 0;
-    else if (faixaResultado >= limiteSuperior) termometroPercent = 100;
-    else termometroPercent = ((faixaResultado - limiteInferior) / (limiteSuperior - limiteInferior)) * 100;
-    if (totalAportes === 0) termometroPercent = 50; // neutro
-    return { totalAportes, totalEquipPago, totalEquipDevendo, totalReceber, resultadoOp, fundoTotal, paybackPercent, termometroPercent, saldoEspecie, saldoPix };
+    if(paybackPercent > 100) paybackPercent = 100;
+    if(paybackPercent < 0) paybackPercent = 0;
+    return { totalAportes, totalEquipPago, totalEquipDevendo, totalReceber: totalReceberLiquido, resultadoOp, totalCaixa, saldoEspecie, saldoPix, paybackPercent };
   }
 
   function atualizarDashboard() {
     const t = getTotais();
-    const elements = {
-      saldoEspecie: t.saldoEspecie, saldoPix: t.saldoPix, totalReceber: t.totalReceber,
-      fundoTotal: t.fundoTotal, totalAportes: t.totalAportes, totalEquipPago: t.totalEquipPago,
-      totalEquipDevendo: t.totalEquipDevendo, resultadoOp: t.resultadoOp
-    };
-    for (const [id, val] of Object.entries(elements)) {
-      const el = document.getElementById(id);
-      if (el) {
-        el.innerHTML = `R$ ${val.toFixed(2)}`;
-        aplicarCorNegativa(el, val);
-      }
-    }
+    document.getElementById("saldoEspecie").innerHTML = `R$ ${t.saldoEspecie.toFixed(2)}`;
+    document.getElementById("saldoPix").innerHTML = `R$ ${t.saldoPix.toFixed(2)}`;
+    document.getElementById("totalCaixa").innerHTML = `R$ ${t.totalCaixa.toFixed(2)}`;
+    document.getElementById("totalReceber").innerHTML = `R$ ${t.totalReceber.toFixed(2)}`;
+    document.getElementById("totalAportes").innerHTML = `R$ ${t.totalAportes.toFixed(2)}`;
+    document.getElementById("totalEquipPago").innerHTML = `R$ ${t.totalEquipPago.toFixed(2)}`;
+    document.getElementById("totalEquipDevendo").innerHTML = `R$ ${t.totalEquipDevendo.toFixed(2)}`;
+    document.getElementById("resultadoOp").innerHTML = `R$ ${t.resultadoOp.toFixed(2)}`;
     document.getElementById("paybackPercent").innerHTML = `${t.paybackPercent.toFixed(1)}%`;
     document.getElementById("paybackFill").style.width = `${t.paybackPercent}%`;
-    // Termômetro
-    document.getElementById("termometroFill").style.width = `${t.termometroPercent}%`;
-    let emoji = "😰", msg = "";
-    if (t.termometroPercent < 30) { emoji = "😰"; msg = "Ainda no prejuízo, continue trabalhando!"; }
-    else if (t.termometroPercent < 70) { emoji = "😐"; msg = "Está saindo do vermelho, força!"; }
-    else { emoji = "😊💰"; msg = "Parabéns! Você está lucrando!"; }
-    document.getElementById("paybackDetalhe").innerHTML = `${emoji} ${msg} <br> Resultado operacional: R$ ${t.resultadoOp.toFixed(2)} | Investido: R$ ${t.totalAportes.toFixed(2)}`;
-    document.getElementById("paybackMsg").innerHTML = t.resultadoOp >= t.totalAportes ? "🎉 Payback atingido! Lucro real." : `📈 Faltam R$ ${(t.totalAportes - t.resultadoOp).toFixed(2)} para recuperar o investimento.`;
+    const msg = t.resultadoOp >= t.totalAportes ? "🎉 Payback atingido! Lucro real." : `📈 Faltam R$ ${(t.totalAportes - t.resultadoOp).toFixed(2)} para recuperar.`;
+    document.getElementById("paybackMsg").innerHTML = msg;
     atualizarGrafico();
   }
 
   function atualizarGrafico() {
     const ctx = document.getElementById("lucroChart").getContext('2d');
-    const ordenados = [...balancos].sort((a, b) => a.data.localeCompare(b.data));
-    const labels = ordenados.map(b => formatarData(b.data));
-    const lucros = ordenados.map(b => b.lucroBruto);
-    if (lucroChart) lucroChart.destroy();
-    lucroChart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ label: 'Lucro Bruto dia (R$)', data: lucros, borderColor: '#2e7d32', fill: true }] }
-    });
+    const ordenados = [...balancos].sort((a,b)=>a.data.localeCompare(b.data));
+    const labels = ordenados.map(b=>b.data);
+    const lucros = ordenados.map(b=>b.lucroBruto);
+    if(lucroChart) lucroChart.destroy();
+    lucroChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Lucro Bruto do dia (R$)', data: lucros, borderColor: '#2e7d32', fill: true }] } });
   }
 
-  // ==================== RENDERIZAÇÃO DAS LISTAS ====================
   function renderizarAportes() {
     const div = document.getElementById("listaAportes");
-    if (!aportes.length) { div.innerHTML = "<p>Nenhum aporte.</p>"; return; }
+    if(!aportes.length) { div.innerHTML = "<p>Nenhum aporte.</p>"; return; }
     let html = "<div style='display:flex;flex-wrap:wrap;gap:8px'>";
-    aportes.forEach(a => {
-      html += `<div style='background:#e8f5e9;border-radius:16px;padding:6px 12px'>${formatarData(a.data)} - R$ ${a.valor.toFixed(2)} - ${a.descricao} 
-      <button onclick="removerAporte('${a.id}')" style='background:#ffcdd2;padding:2px 8px'>✖️</button></div>`;
-    });
+    aportes.forEach(a => { html += `<div style='background:#e8f5e9;border-radius:16px;padding:6px 12px'>${a.data} - R$ ${a.valor.toFixed(2)} - ${a.descricao} <button onclick="removerAporte('${a.id}')" style='background:#ffcdd2;padding:2px 8px'>✖️</button></div>`; });
     html += "</div>";
     div.innerHTML = html;
   }
 
   function renderizarEquipamentos() {
     const div = document.getElementById("listaEquipamentos");
-    if (!equipamentos.length) { div.innerHTML = "<p>Nenhum equipamento.</p>"; return; }
+    if(!equipamentos.length) { div.innerHTML = "<p>Nenhum equipamento.</p>"; return; }
     let html = "<table><tr><th>Item</th><th>Total</th><th>Já pago</th><th>A pagar</th><th>Ações</th></tr>";
-    equipamentos.forEach(e => {
-      html += `<tr><td>${e.descricao}</td><td>R$ ${e.total.toFixed(2)}</td><td>R$ ${e.pago.toFixed(2)}</td><td>R$ ${e.restante.toFixed(2)}</td>
-      <td><button onclick="removerEquip('${e.id}')">🗑️</button></td></tr>`;
-    });
+    equipamentos.forEach(e => { html += `<tr><td>${e.descricao}</td><td>R$ ${e.total.toFixed(2)}NonNull<td>R$ ${e.pago.toFixed(2)}</td><td>R$ ${e.restante.toFixed(2)}</td><td><button onclick="removerEquip('${e.id}')">🗑️</button></td></tr>`; });
     html += "</table>";
     div.innerHTML = html;
   }
 
   function renderizarCustosFixos() {
     const div = document.getElementById("listaCustosFixos");
-    if (!custosFixos.length) { div.innerHTML = "<p>Nenhum custo fixo.</p>"; return; }
-    let html = "能able: <tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Origem</th><th>Ações</th></tr>";
-    custosFixos.forEach(c => {
-      html += `<tr><td>${formatarData(c.data)}</td><td>${c.descricao}</td><td>R$ ${c.valor.toFixed(2)}</td><td>${c.origem}</td>
-      <td><button onclick="removerCustoFixo('${c.id}')">🗑️</button></td></tr>`;
-    });
+    if(!custosFixos.length) { div.innerHTML = "<p>Nenhum custo fixo.</p>"; return; }
+    let html = "table><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Origem</th><th>Pagamento</th><th>Ações</th></tr>";
+    custosFixos.forEach(c => { html += `<tr><td>${c.data}</td><td>${c.descricao}</td><td>R$ ${c.valor.toFixed(2)}</td><td>${c.origem === 'aporte' ? 'Aporte' : 'Caixa'}</td><td>${c.pagamento === 'pix' ? 'Pix' : 'Espécie'}</td><td><button onclick="removerCustoFixo('${c.id}')">🗑️</button></td></tr>`; });
     html += "</table>";
     div.innerHTML = html;
   }
 
+  function renderizarTransferencias() {
+    const div = document.getElementById("listaTransferencias");
+    if(!transferencias.length) { div.innerHTML = "<p>Nenhuma transferência registrada.</p>"; return; }
+    let html = "<div style='display:flex;flex-wrap:wrap;gap:6px'>";
+    transferencias.forEach(t => { html += `<div class='chip'>${t.data} ${t.de} → ${t.para}: R$ ${t.valor.toFixed(2)} ${t.obs ? `(${t.obs})` : ''} <button onclick="removerTransferencia('${t.id}')" style='background:#ffcdd2;padding:0px 6px;margin-left:5px'>✖️</button></div>`; });
+    html += "</div>";
+    div.innerHTML = html;
+  }
+
+  function renderizarRecebimentos() {
+    const div = document.getElementById("listaRecebimentos");
+    if(!recebimentos.length) { div.innerHTML = "<p>Nenhum pagamento de fiado registrado.</p>"; return; }
+    let html = "<div style='display:flex;flex-wrap:wrap;gap:6px'>";
+    recebimentos.forEach(r => { html += `<div class='chip'>${r.data} Recebido R$ ${r.valor.toFixed(2)} → ${r.destino} - ${r.descricao} ${r.refData ? `(ref: ${r.refData})` : ''} <button onclick="removerRecebimento('${r.id}')" style='background:#ffcdd2;padding:0px 6px;margin-left:5px'>✖️</button></div>`; });
+    html += "</div>";
+    div.innerHTML = html;
+  }
+
+  // CORREÇÃO AQUI: agora usa refData para associar recebimento ao dia do fiado
+  function renderizarPendentes() {
+    const div = document.getElementById("listaPendentes");
+    // Agrupa recebimentos por data de referência (refData) ou pela data do recebimento (fallback)
+    const recebimentosPorDia = {};
+    recebimentos.forEach(r => {
+      const key = r.refData || r.data;  // usa refData se existir (dia do fiado)
+      recebimentosPorDia[key] = (recebimentosPorDia[key] || 0) + r.valor;
+    });
+
+    const pendentes = balancos.filter(b => (b.fatFiado || 0) > 0).map(b => {
+      const recebidoDia = recebimentosPorDia[b.data] || 0;
+      const saldo = b.fatFiado - recebidoDia;
+      return { data: b.data, saldo, original: b.fatFiado, balancoId: b.id };
+    }).filter(p => p.saldo > 0);
+
+    if(pendentes.length === 0) { div.innerHTML = "<p>✅ Nenhum fiado pendente.</p>"; return; }
+    let html = "";
+    pendentes.forEach(p => {
+      html += `
+        <div class="pendente-item">
+          <span><strong>${p.data}</strong> - R$ ${p.saldo.toFixed(2)} (total fiado: R$ ${p.original.toFixed(2)})</span>
+          <button class="btn-receber" onclick="receberPendente('${p.data}', ${p.saldo})">✅ Receber</button>
+        </div>
+      `;
+    });
+    div.innerHTML = html;
+  }
+
+  // Função corrigida: ao receber, salva com refData = data do fiado
+  window.receberPendente = async (data, valorMaximo) => {
+    let valor = parseFloat(prompt(`Valor a receber do dia ${data} (máximo R$ ${valorMaximo.toFixed(2)}):`, valorMaximo.toFixed(2)));
+    if(isNaN(valor) || valor <= 0) return;
+    if(valor > valorMaximo) {
+      alert(`Valor não pode exceder R$ ${valorMaximo.toFixed(2)}`);
+      return;
+    }
+    const destino = confirm("Destino: OK para Espécie, Cancelar para Pix") ? "especie" : "pix";
+    const descricao = `Recebimento de fiado do dia ${data}`;
+    const hoje = new Date().toISOString().split('T')[0];
+    const docRef = await recebimentosRef.add({
+      data: hoje,              // data do lançamento (hoje)
+      valor,
+      destino,
+      descricao,
+      refData: data           // data original da dívida (importante!)
+    });
+    recebimentos.push({ id: docRef.id, data: hoje, valor, destino, descricao, refData: data });
+    recalcularSaldos();
+    atualizarTudo();
+    alert(`R$ ${valor.toFixed(2)} recebido em ${destino === "especie" ? "Espécie" : "Pix"}.`);
+  };
+
   function renderizarExtrato(filtroInicio = "", filtroFim = "") {
     let lista = [...balancos];
-    if (filtroInicio) lista = lista.filter(b => b.data >= filtroInicio);
-    if (filtroFim) lista = lista.filter(b => b.data <= filtroFim);
-    lista.sort((a, b) => a.data.localeCompare(b.data));
+    if(filtroInicio) lista = lista.filter(b=>b.data >= filtroInicio);
+    if(filtroFim) lista = lista.filter(b=>b.data <= filtroFim);
+    lista.sort((a,b)=>a.data.localeCompare(b.data));
     const tbody = document.getElementById("corpoExtrato");
     tbody.innerHTML = "";
     let lucroTotal = 0;
     lista.forEach(b => {
-      let custosFixosDia = custosFixos.filter(c => c.origem === "caixa" && c.data === b.data).reduce((s, c) => s + c.valor, 0);
-      const lucroLiq = b.lucroBruto - custosFixosDia;
-      lucroTotal += lucroLiq;
       const row = tbody.insertRow();
-      row.insertCell(0).innerText = formatarData(b.data);
+      row.insertCell(0).innerText = b.data;
       row.insertCell(1).innerText = `R$ ${b.fatTotal.toFixed(2)}`;
       row.insertCell(2).innerText = `R$ ${b.insumoValor.toFixed(2)}`;
       row.insertCell(3).innerText = `R$ ${b.lucroBruto.toFixed(2)}`;
+      let custosFixosDia = custosFixos.filter(c=>c.origem==="caixa" && c.data === b.data).reduce((s,c)=>s+c.valor,0);
       row.insertCell(4).innerText = `R$ ${custosFixosDia.toFixed(2)}`;
-      const lucroCell = row.insertCell(5);
-      lucroCell.innerText = `R$ ${lucroLiq.toFixed(2)}`;
-      if (lucroLiq < 0) lucroCell.style.color = "#c62828";
-      else lucroCell.style.color = "#2e7d32";
+      const lucroLiq = b.lucroBruto - custosFixosDia;
+      row.insertCell(5).innerText = `R$ ${lucroLiq.toFixed(2)}`;
+      if(lucroLiq < 0) row.cells[5].style.color = "#c62828";
+      else row.cells[5].style.color = "#2e7d32";
+      lucroTotal += lucroLiq;
       const btnCell = row.insertCell(6);
       const btn = document.createElement("button");
       btn.innerText = "🗑️";
       btn.style.background = "#ffcdd2";
-      btn.onclick = () => removerBalancos(b.id);
+      btn.onclick = () => { if(confirm("Remover este dia?")) removerBalancos(b.id); };
       btnCell.appendChild(btn);
     });
     document.getElementById("lucroPeriodo").innerHTML = `R$ ${lucroTotal.toFixed(2)}`;
-    const lucroPeriodoEl = document.getElementById("lucroPeriodo");
-    aplicarCorNegativa(lucroPeriodoEl, lucroTotal);
   }
 
-  // ==================== AÇÕES DE REMOÇÃO ====================
-  async function removerBalancos(id) {
-    if (!confirm("Remover este dia?")) return;
-    await balancosCol.doc(id).delete();
-    balancos = balancos.filter(b => b.id !== id);
-    recalcularSaldos();
-    atualizarTudo();
-  }
-
-  async function removerAporte(id) {
-    await aportesCol.doc(id).delete();
-    aportes = aportes.filter(a => a.id !== id);
-    recalcularSaldos();
-    atualizarTudo();
-  }
-
-  async function removerEquip(id) {
-    await equipamentosCol.doc(id).delete();
-    equipamentos = equipamentos.filter(e => e.id !== id);
-    atualizarTudo();
-  }
-
-  async function removerCustoFixo(id) {
-    await custosFixosCol.doc(id).delete();
-    custosFixos = custosFixos.filter(c => c.id !== id);
-    recalcularSaldos();
-    atualizarTudo();
-  }
-
-  // ==================== ADIÇÃO DE REGISTROS ====================
   async function adicionarAporte() {
     const data = document.getElementById("aporteData").value;
     const valor = parseFloat(document.getElementById("aporteValor").value);
     const destino = document.getElementById("aporteDestino").value;
-    const desc = document.getElementById("aporteDesc").value.trim() || "Aporte";
-    if (!data || isNaN(valor) || valor <= 0) { alert("Data e valor válidos"); return; }
-    const novo = { data, valor, destino, descricao: desc };
-    const doc = await adicionarDocumento(aportesCol, novo);
-    aportes.push({ id: doc.id, ...novo });
-    recalcularSaldos();
-    atualizarTudo();
+    const descricao = document.getElementById("aporteDesc").value.trim() || "Aporte";
+    if(!data || isNaN(valor) || valor<=0) { alert("Data e valor válidos"); return; }
+    const docRef = await aportesRef.add({ data, valor, destino, descricao });
+    aportes.push({ id: docRef.id, data, valor, destino, descricao });
+    recalcularSaldos(); atualizarTudo();
     document.getElementById("aporteValor").value = "";
     document.getElementById("aporteDesc").value = "";
   }
-
   async function adicionarEquipamento() {
-    const desc = document.getElementById("equipDesc").value.trim();
+    const descricao = document.getElementById("equipDesc").value.trim();
     const total = parseFloat(document.getElementById("equipTotal").value);
     let pago = parseFloat(document.getElementById("equipPago").value) || 0;
     const pagamento = document.getElementById("equipPagamento").value;
-    if (!desc || isNaN(total) || total <= 0) { alert("Preencha descrição e total"); return; }
-    if (pago > total) pago = total;
+    if(!descricao || isNaN(total) || total<=0) { alert("Preencha corretamente"); return; }
+    if(pago > total) pago = total;
     const restante = total - pago;
-    const novo = { descricao: desc, total, pago, restante, pagamento };
-    const doc = await adicionarDocumento(equipamentosCol, novo);
-    equipamentos.push({ id: doc.id, ...novo });
+    const docRef = await equipamentosRef.add({ descricao, total, pago, restante, pagamento });
+    equipamentos.push({ id: docRef.id, descricao, total, pago, restante, pagamento });
     atualizarTudo();
     document.getElementById("equipDesc").value = "";
     document.getElementById("equipTotal").value = "";
     document.getElementById("equipPago").value = "";
   }
-
   async function adicionarCustoFixo() {
     const data = document.getElementById("custoFixoData").value;
-    const desc = document.getElementById("custoFixoDesc").value.trim();
+    const descricao = document.getElementById("custoFixoDesc").value.trim();
     const valor = parseFloat(document.getElementById("custoFixoValor").value);
     const origem = document.getElementById("custoFixoOrigem").value;
-    if (!data || !desc || isNaN(valor) || valor <= 0) { alert("Preencha todos os campos"); return; }
-    const novo = { data, descricao: desc, valor, origem, pagamento: "especie" };
-    const doc = await adicionarDocumento(custosFixosCol, novo);
-    custosFixos.push({ id: doc.id, ...novo });
-    recalcularSaldos();
-    atualizarTudo();
+    const pagamento = document.getElementById("custoFixoPagamento").value;
+    if(!data || !descricao || isNaN(valor) || valor<=0) { alert("Preencha todos os campos"); return; }
+    const docRef = await custosFixosRef.add({ data, descricao, valor, origem, pagamento });
+    custosFixos.push({ id: docRef.id, data, descricao, valor, origem, pagamento });
+    recalcularSaldos(); atualizarTudo();
     document.getElementById("custoFixoDesc").value = "";
     document.getElementById("custoFixoValor").value = "";
   }
-
+  async function adicionarTransferencia() {
+    const data = document.getElementById("transferData").value;
+    const de = document.getElementById("transferDe").value;
+    const para = document.getElementById("transferPara").value;
+    const valor = parseFloat(document.getElementById("transferValor").value);
+    const obs = document.getElementById("transferObs").value.trim();
+    if(!data || isNaN(valor) || valor<=0) { alert("Preencha data e valor válido"); return; }
+    if(de === para) { alert("Origem e destino não podem ser iguais"); return; }
+    let saldoOrigem = (de === "especie") ? saldoEspecie : saldoPix;
+    if(saldoOrigem < valor && !confirm(`Saldo atual de ${de === "especie" ? "Espécie" : "Pix"} é R$ ${saldoOrigem.toFixed(2)}. Transferir mesmo assim?`)) return;
+    const docRef = await transferenciasRef.add({ data, de, para, valor, obs });
+    transferencias.push({ id: docRef.id, data, de, para, valor, obs });
+    recalcularSaldos(); atualizarTudo();
+    document.getElementById("transferValor").value = "";
+    document.getElementById("transferObs").value = "";
+  }
+  async function adicionarRecebimentoFiado() {
+    const data = document.getElementById("recebimentoData").value;
+    const valor = parseFloat(document.getElementById("recebimentoValor").value);
+    const destino = document.getElementById("recebimentoDestino").value;
+    const descricao = document.getElementById("recebimentoDesc").value.trim() || "Pagamento de fiado";
+    if(!data || isNaN(valor) || valor<=0) { alert("Data e valor válidos"); return; }
+    const totalFiadoAtual = balancos.reduce((s,b)=>s+(b.fatFiado||0),0);
+    const totalRecebidoAtual = recebimentos.reduce((s,r)=>s+r.valor,0);
+    const disponivelReceber = totalFiadoAtual - totalRecebidoAtual;
+    if(valor > disponivelReceber && !confirm(`Atenção: o valor recebido (R$ ${valor.toFixed(2)}) é maior que o saldo atual de contas a receber (R$ ${disponivelReceber.toFixed(2)}). Deseja continuar?`)) return;
+    const docRef = await recebimentosRef.add({ data, valor, destino, descricao, refData: data }); // para compatibilidade, refData igual à data do recebimento
+    recebimentos.push({ id: docRef.id, data, valor, destino, descricao, refData: data });
+    recalcularSaldos(); atualizarTudo();
+    document.getElementById("recebimentoValor").value = "";
+    document.getElementById("recebimentoDesc").value = "";
+  }
   async function finalizarDia() {
     const data = document.getElementById("balancoData").value;
     const fatEspecie = parseFloat(document.getElementById("vendaEspecie").value) || 0;
@@ -525,18 +555,13 @@
     const insumoPagamento = document.getElementById("insumoPagamento").value;
     const insumoDesc = document.getElementById("insumoDesc").value;
     const lucroBruto = fatTotal - insumoValor;
-    if (!data) { alert("Selecione a data"); return; }
-    const existente = balancos.find(b => b.data === data);
-    if (existente) {
-      if (!confirm(`Já existe lançamento para ${data}. Substituir?`)) return;
-      await balancosCol.doc(existente.id).delete();
-      balancos = balancos.filter(b => b.id !== existente.id);
-    }
-    const novo = { data, fatEspecie, fatPix, fatFiado, fatTotal, insumoValor, insumoPagamento, insumoDesc, lucroBruto };
-    const doc = await adicionarDocumento(balancosCol, novo);
-    balancos.push({ id: doc.id, ...novo });
-    recalcularSaldos();
-    atualizarTudo();
+    if(!data) { alert("Selecione a data"); return; }
+    const existente = balancos.find(b=>b.data === data);
+    if(existente && !confirm(`Já existe lançamento para ${data}. Substituir?`)) return;
+    if(existente) { await balancosRef.doc(existente.id).delete(); balancos = balancos.filter(b=>b.id !== existente.id); }
+    const docRef = await balancosRef.add({ data, fatEspecie, fatPix, fatFiado, fatTotal, insumoValor, insumoPagamento, insumoDesc, lucroBruto });
+    balancos.push({ id: docRef.id, data, fatEspecie, fatPix, fatFiado, fatTotal, insumoValor, insumoPagamento, insumoDesc, lucroBruto });
+    recalcularSaldos(); atualizarTudo();
     alert(`✅ Dia ${data} registrado! Lucro Bruto: R$ ${lucroBruto.toFixed(2)}`);
     document.getElementById("vendaEspecie").value = "";
     document.getElementById("vendaPix").value = "";
@@ -545,28 +570,26 @@
     document.getElementById("insumoDesc").value = "";
   }
 
-  // Transferência
-  async function transferir() {
-    const de = document.getElementById("transfDe").value;
-    const para = document.getElementById("transfPara").value;
-    let valor = parseFloat(document.getElementById("transfValor").value);
-    const data = document.getElementById("transfData").value;
-    if (de === para) { alert("Escolha caixas diferentes"); return; }
-    if (isNaN(valor) || valor <= 0) { alert("Valor inválido"); return; }
-    if (!data) { alert("Selecione a data"); return; }
-    // Verificar saldo disponível
-    const saldoAtual = de === "especie" ? saldoEspecie : saldoPix;
-    if (saldoAtual < valor) {
-      alert(`Saldo insuficiente em ${de === "especie" ? "Espécie" : "Pix"}. Saldo atual: R$ ${saldoAtual.toFixed(2)}`);
-      return;
+  async function removerAporte(id) { await aportesRef.doc(id).delete(); aportes = aportes.filter(a=>a.id !== id); recalcularSaldos(); atualizarTudo(); }
+  async function removerEquip(id) { await equipamentosRef.doc(id).delete(); equipamentos = equipamentos.filter(e=>e.id !== id); atualizarTudo(); }
+  async function removerCustoFixo(id) { await custosFixosRef.doc(id).delete(); custosFixos = custosFixos.filter(c=>c.id !== id); recalcularSaldos(); atualizarTudo(); }
+  async function removerBalancos(id) { await balancosRef.doc(id).delete(); balancos = balancos.filter(b=>b.id !== id); recalcularSaldos(); atualizarTudo(); }
+  async function removerTransferencia(id) { await transferenciasRef.doc(id).delete(); transferencias = transferencias.filter(t=>t.id !== id); recalcularSaldos(); atualizarTudo(); }
+  async function removerRecebimento(id) { await recebimentosRef.doc(id).delete(); recebimentos = recebimentos.filter(r=>r.id !== id); recalcularSaldos(); atualizarTudo(); }
+
+  async function resetarTudo() {
+    if(confirm("⚠️ Isso apagará TODOS os dados do Firebase. Continuar?")) {
+      const batches = [];
+      batches.push(aportesRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      batches.push(equipamentosRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      batches.push(custosFixosRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      batches.push(balancosRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      batches.push(transferenciasRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      batches.push(recebimentosRef.get().then(snap => snap.forEach(d => d.ref.delete())));
+      await Promise.all(batches);
+      aportes = []; equipamentos = []; custosFixos = []; balancos = []; transferencias = []; recebimentos = [];
+      recalcularSaldos(); atualizarTudo();
     }
-    const transferencia = { de, para, valor, data };
-    const doc = await adicionarDocumento(transferenciasCol, transferencia);
-    transferencias.push({ id: doc.id, ...transferencia });
-    recalcularSaldos();
-    atualizarTudo();
-    alert(`Transferência de R$ ${valor.toFixed(2)} de ${de === "especie" ? "Espécie" : "Pix"} para ${para === "especie" ? "Espécie" : "Pix"} realizada.`);
-    document.getElementById("transfValor").value = "";
   }
 
   function atualizarTudo() {
@@ -574,36 +597,28 @@
     renderizarAportes();
     renderizarEquipamentos();
     renderizarCustosFixos();
+    renderizarTransferencias();
+    renderizarRecebimentos();
+    renderizarPendentes();
     renderizarExtrato(document.getElementById("filtroInicio").value, document.getElementById("filtroFim").value);
   }
 
-  // ==================== MENU E FILTROS ====================
   function initMenu() {
-    const items = document.querySelectorAll('.menu-item');
+    const menuItems = document.querySelectorAll('.menu-item');
     const pages = document.querySelectorAll('.page');
-    items.forEach(item => {
+    menuItems.forEach(item => {
       item.addEventListener('click', () => {
         const pageId = item.getAttribute('data-page') + '-page';
-        items.forEach(i => i.classList.remove('active'));
+        menuItems.forEach(i => i.classList.remove('active'));
         item.classList.add('active');
         pages.forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
       });
     });
   }
-
-  document.getElementById("toggleSidebar").addEventListener("click", () => {
-    document.getElementById("sidebar").classList.toggle("collapsed");
-  });
-
-  function aplicarFiltro() {
-    renderizarExtrato(document.getElementById("filtroInicio").value, document.getElementById("filtroFim").value);
-  }
-  function limparFiltro() {
-    document.getElementById("filtroInicio").value = "";
-    document.getElementById("filtroFim").value = "";
-    renderizarExtrato("", "");
-  }
+  document.getElementById("toggleSidebar").addEventListener("click", () => document.getElementById("sidebar").classList.toggle("collapsed"));
+  function aplicarFiltro() { renderizarExtrato(document.getElementById("filtroInicio").value, document.getElementById("filtroFim").value); }
+  function limparFiltro() { document.getElementById("filtroInicio").value = ""; document.getElementById("filtroFim").value = ""; renderizarExtrato("", ""); }
 
   window.onload = async () => {
     initMenu();
@@ -611,15 +626,23 @@
     document.getElementById("aporteData").value = hoje;
     document.getElementById("balancoData").value = hoje;
     document.getElementById("custoFixoData").value = hoje;
-    document.getElementById("transfData").value = hoje;
+    document.getElementById("transferData").value = hoje;
+    document.getElementById("recebimentoData").value = hoje;
     document.getElementById("btnAddAporte").onclick = adicionarAporte;
     document.getElementById("btnAddEquip").onclick = adicionarEquipamento;
     document.getElementById("btnAddCustoFixo").onclick = adicionarCustoFixo;
     document.getElementById("btnFinalizarDia").onclick = finalizarDia;
-    document.getElementById("btnReset").onclick = resetarTodosDocumentos;
+    document.getElementById("btnReset").onclick = resetarTudo;
     document.getElementById("btnFiltrar").onclick = aplicarFiltro;
     document.getElementById("btnLimparFiltro").onclick = limparFiltro;
-    document.getElementById("btnTransferir").onclick = transferir;
+    document.getElementById("btnTransferir").onclick = adicionarTransferencia;
+    document.getElementById("btnReceberFiado").onclick = adicionarRecebimentoFiado;
+    window.removerAporte = removerAporte;
+    window.removerEquip = removerEquip;
+    window.removerCustoFixo = removerCustoFixo;
+    window.removerBalancos = removerBalancos;
+    window.removerTransferencia = removerTransferencia;
+    window.removerRecebimento = removerRecebimento;
     await carregarDados();
   };
 </script>
